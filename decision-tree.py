@@ -210,7 +210,7 @@ def compute_tree(dataset, parent_node, classifier):
 # Classify dataset
 ##################################################
 def classify_leaf(dataset, classifier):
-    ones = one_count(dataset.examples, dataset.attributes, classifier)
+    ones = one_count(dataset.examples, dataset.attributes, classifier)  # count number of classied as '1'
     total = len(dataset.examples)
     zeroes = total - ones
     if (ones >= zeroes):
@@ -219,19 +219,31 @@ def classify_leaf(dataset, classifier):
         return 0
 
 ##################################################
-# Calculate the entropy of the current dataset
+# Calculate the entropy of the current dataset : Entropy(dataset)= - Sigma( pi*log2(pi)) i=1:k  , k is the number of modalities in the class
 ##################################################
 def calc_dataset_entropy(dataset, classifier):
-    ones = one_count(dataset.examples, dataset.attributes, classifier)
+    ones = one_count(dataset.examples, dataset.attributes, classifier)  # count number of examples with classification "1"
     total_examples = len(dataset.examples);
-
     entropy = 0
+    theta=0.05
     p = ones / total_examples
-    if (p != 0):
-        entropy += p * math.log(p, 2)
-    p = (total_examples - ones)/total_examples
-    if (p != 0):
-        entropy += p * math.log(p, 2)
+    x=p
+    if (p<=theta):
+        if ( x!=0):
+            x=p/(2*theta)
+            entropy += x * math.log(x, 2)
+        x=1-x
+        if (x != 0 ):
+            
+            entropy += x * math.log(x, 2)
+    if(p>theta):
+        if ( x!=0):
+            x=(p+1-2*theta)/(2*(1-theta))
+            entropy += x * math.log(x, 2)
+        x=1-x
+        if (x != 0 ):
+            
+            entropy += x * math.log(x, 2)
 
     entropy = -entropy
     return entropy
@@ -243,7 +255,7 @@ def calc_gain(dataset, entropy, val, attr_index):
     classifier = dataset.attributes[attr_index]
     attr_entropy = 0
     total_examples = len(dataset.examples);
-    gain_upper_dataset = data(classifier)
+    gain_upper_dataset = data(classifier) # instanciate the class data with the parametr classifier
     gain_lower_dataset = data(classifier)
     gain_upper_dataset.attributes = dataset.attributes
     gain_lower_dataset.attributes = dataset.attributes
@@ -261,7 +273,7 @@ def calc_gain(dataset, entropy, val, attr_index):
     attr_entropy += calc_dataset_entropy(gain_upper_dataset, classifier)*len(gain_upper_dataset.examples)/total_examples
     attr_entropy += calc_dataset_entropy(gain_lower_dataset, classifier)*len(gain_lower_dataset.examples)/total_examples
 
-    return entropy - attr_entropy
+    return entropy - attr_entropy    # this is the IG ( Information Gain)
 
 ##################################################
 # count number of examples with classification "1"
@@ -385,7 +397,7 @@ def print_disjunctive(node, dataset, dnf_string):
     if (node.is_leaf == True):
         if (node.classification == 1):
             dnf_string = dnf_string[:-3]
-            dnf_string += ") ^ "
+            dnf_string += ") ^^ "
             print (dnf_string,)
         else:
             return
