@@ -9,7 +9,9 @@ import ast
 import csv
 from collections import Counter
 
-
+################Crucial parameters################
+#Off-centred entropy parameter
+theta=0.89
 ##################################################
 # data class to hold csv data
 ##################################################
@@ -225,7 +227,6 @@ def calc_dataset_entropy(dataset, classifier):
     ones = one_count(dataset.examples, dataset.attributes, classifier)  # count number of examples with classification "1"
     total_examples = len(dataset.examples);
     entropy = 0
-    theta=0.05
     p = ones / total_examples
     x=p
     if (p<=theta):
