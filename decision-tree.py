@@ -448,7 +448,11 @@ def main():
         preprocess2(dataset)
 
         print ("Computing tree...")
+        if  ("-w" in args):
+        	global theta
+        	theta=float(args[args.index("-w")+1])
         root = compute_tree(dataset, None, classifier) 
+
         if ("-s" in args):
             print_disjunctive(root, dataset, "")
             print( "\n")
