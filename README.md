@@ -1,4 +1,4 @@
-# This is a modification of the code made by : Rayan Madden and Ally Cody.
+# This is a modification of the code C4.5 made by : Rayan Madden and Ally Cody.
 # The main in changes in the code are: Adding the OCE ( Off-Centred Entropy) and OAE( Off-Asymmetric Entropy). The purpose of those changes is to deal with imbalance of modalities in the class. Here we have done it just for a binary class, but the code can be extended to multiple values class.
 # This modification is made by: Riahi LOURIZ, Rochd Maliki and Ali Mesbahi during the internship at IMT Atlantique.
 ## Here is the READ ME of Rayan Madden and Ally Cody:
