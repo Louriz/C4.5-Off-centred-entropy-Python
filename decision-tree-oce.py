@@ -11,7 +11,7 @@ from collections import Counter
 
 ################Crucial parameters################
 #Off-centred entropy parameter
-theta=0.89
+theta=0.75
 ##################################################
 # data class to hold csv data
 ##################################################
@@ -228,25 +228,23 @@ def calc_dataset_entropy(dataset, classifier):  # off centered entropy
     total_examples = len(dataset.examples);
     entropy = 0
     p = ones / total_examples
-    x=p
+    
+    
     if (p<=theta):
-        if ( x!=0):
-            x=p/(2*theta)
-            entropy += x * math.log(x, 2)
-        x=1-x
-        if (x != 0 ):
-            
-            entropy += x * math.log(x, 2)
-    if(p>theta):
-        if ( x!=0):
-            x=(p+1-2*theta)/(2*(1-theta))
-            entropy += x * math.log(x, 2)
-        x=1-x
-        if (x != 0 ):
-            
-            entropy += x * math.log(x, 2)
+        x=p/(2*theta)
+        if (x==1 or x==0):
+            entropy+=0
+        else:
+            entropy+=-x*math.log(x,2)-x*math.log(x,2)
 
-    entropy = -entropy
+    if (p>theta):
+        x=(p+1-2*theta)/(2*(1-theta))
+        if (x==1 or x==0):
+            entropy+=0
+        else:
+            entropy+=-x*math.log(x,2)-x*math.log(x,2)    
+
+
     return entropy
 
 ##################################################
@@ -451,6 +449,7 @@ def main():
         if  ("-w" in args):
         	global theta
         	theta=float(args[args.index("-w")+1])
+
         root = compute_tree(dataset, None, classifier) 
 
         if ("-s" in args):
