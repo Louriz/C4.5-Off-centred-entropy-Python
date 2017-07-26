@@ -301,7 +301,7 @@ def compute_tree(dataset, parent_node, classifier,datatypes):
             for val in attr_value_list:
                 # calculate the gain if we split on this value
                 # if gain is greater than local_max_gain, save this gain and this value
-                local_gain = calc_gain(dataset, dataset_entropy, val, attr_index,datatypes) # calculate the gain if we split on this value
+                local_gain = calc_gain(dataset, classifier, dataset_entropy, val, attr_index,datatypes) # calculate the gain if we split on this value
   
                 if (local_gain >= local_max_gain):
                     local_max_gain = local_gain
@@ -424,12 +424,18 @@ def calc_dataset_entropy(dataset, classifier):  # off centered entropy
 ##################################################
 # Calculate the gain of a particular attribute split
 ##################################################
-def calc_gain(dataset, entropy, val, attr_index,datatypes):
+def calc_gain(dataset,classifier, entropy, val, attr_index,datatypes):
     table=dataset_to_table(dataset)
-    classifier = dataset.attributes[attr_index]
+    #classifier = dataset.attributes[attr_index]
     attr_entropy = 0
     if(datatypes[attr_index]=='false'):
         attr_entropy+=infox(table,dataset.attributes[attr_index],dataset.attributes[len(dataset.attributes)-1])
+        #datasets=[]
+        #li=table[datatset.attributes[attr_index]]
+        #unique_li=deldup(li)
+        #for i in range(len(unique_li)):
+        #	datasets[i]=data()
+
         
         
     else:
