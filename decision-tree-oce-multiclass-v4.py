@@ -18,6 +18,7 @@ def dataset_to_table(dataset):
         for example in dataset.examples:
             table[dataset.attributes[k]].append(example[k])
     return table
+
 def deldup(li):
     """ Deletes duplicates from list _li_
         and return new list with unique values.
@@ -172,7 +173,8 @@ def read_data(dataset, datafile, datatypes):
     #dataset.attr_types=['true','false','true','false','false','false','false','false','false','false','true','true','true','false','false']
     #datatypes=['false','false','false','false','true','false']
     #dataset.attr_types=['true','true','true','true','true','true','true','true','true','true','true','true','true','false']
-    dataset.attr_types=['false','true','false','false','true','false','false','true','false','false','true','false','true','false','false','true','false','true','false','false','false']
+    #dataset.attr_types=['false','true','false','false','true','false','false','true','false','false','true','false','true','false','false','true','false','true','false','false','false']
+    #dataset.attr_types=['true','true','true','true','true','true','true','true','false'] #  pima
 
 
     #dataset.attr_types=['true','true','true','true','true','true','true','true','true','false'] #  glass
@@ -315,7 +317,7 @@ def compute_tree(dataset, parent_node, classifier,datatypes):
     #attr_to_split is now the best attribute according to our gain metric
     if (split_val is None or attr_to_split is None):
         print( "Something went wrong. Couldn't find an attribute to split on or a split value.")
-    elif (max_gain <= min_gain or node.height > 20):
+    elif (max_gain <= min_gain or node.height >43 ):
 
         node.is_leaf = True
         node.classification = classify_leaf(dataset, classifier)
@@ -623,11 +625,17 @@ def main():
             datatypes = args[args.index("-d") + 1]
         else:
             datatypes = 'datatypes.csv'
-        datatypes=['false','false','false','false','true','false']  # yellow
+        #datatypes=['false','false','false','false','false']  # yellow
         #datatypes=['true','false','true','false','false','false','false','false','false','false','true','true','true','false','false'] # income
         #datatypes=['true','true','true','true','true','true','true','true','true','true','true','true','true','false'] # wine
         #datatypes=['true','true','true','true','true','true','true','true','true','false'] #  glass
-        #datatypes=['false','true','false','false','true','false','false','true','false','false','true','false','true','false','false','true','false','true','false','false','false']
+        datatypes=['false','true','false','false','true','false','false','true','false','false','true','false','true','false','false','true','false','true','false','false','false']
+        #datatypes=['true','true','true','true','true','true','true','true','false'] #  pima
+        #datatypes=['true','true','true','true','true','true','true','true','false'] #  yeast
+        #datatypes=['true','true','true','true','true','true','true','false'] #  ecoli
+
+
+
 
 
 
