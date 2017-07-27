@@ -30,7 +30,7 @@ oce-shannon-v6.py accepts parameters passed via the command line. The possible p
 ```
 python oce-shannon-v6.py btrain.csv -v bvalidate.csv -p 
 ```
-This command runs oce-shannon-v6.py with btrain.csv as the training set, bvalidate.csv as the validation set and pruning enabled. The classifier is not specified so it defaults to the last column in the training set. No datatypes file is specified so it defaults to datatypes.csv. Printing is not enabled.
+This command runs oce-shannon-v6.py with btrain.csv as the training set, bvalidate.csv as the validation set and pruning enabled. The classifier is not specified so it defaults to the last column in the training set. Printing is not enabled.
 #####Example 2
 ```
 python oce-shannon-v6.py btrain.csv -k 10 -p
@@ -39,4 +39,4 @@ python oce-shannon-v6.py btrain.csv -k 10 -p
 
 
 
-This command runs decision-tree.py with btrain.csv as the training set, 'winner' as the classifier, datatypes.csv as the datatypes file, bvalidate.csv as the validation file, pruning enabled, and printing enabled. Testing is not enabled for this run
+This command runs decision-tree.py with btrain.csv dataets. Here we apply the cross validation with 10 folds. Pruning is enabled. 
