@@ -9,9 +9,7 @@ import ast
 import csv
 from collections import Counter
 
-################Crucial parameters################
-#Off-centred entropy parameter
-theta=0.75
+
 ##################################################
 # data class to hold csv data
 ##################################################
@@ -223,28 +221,19 @@ def classify_leaf(dataset, classifier):
 ##################################################
 # Calculate the entropy of the current dataset : Entropy(dataset)= - Sigma( pi*log2(pi)) i=1:k  , k is the number of modalities in the class
 ##################################################
-def calc_dataset_entropy(dataset, classifier):  # off centered entropy
+def calc_dataset_entropy(dataset, classifier):
     ones = one_count(dataset.examples, dataset.attributes, classifier)  # count number of examples with classification "1"
     total_examples = len(dataset.examples);
     entropy = 0
     p = ones / total_examples
-    
-    
-    if (p<=theta):
-        x=p/(2*theta)
-        if (x==1 or x==0):
-            entropy+=0
-        else:
-            entropy+=-x*math.log(x,2)-x*math.log(x,2)
+    if ( p!=0):
+        entropy += p * math.log(p, 2)
+    p=(total_examples-ones)/total_examples
+    if ( p!=0):
+        entropy += p * math.log(p, 2)
 
-    if (p>theta):
-        x=(p+1-2*theta)/(2*(1-theta))
-        if (x==1 or x==0):
-            entropy+=0
-        else:
-            entropy+=-x*math.log(x,2)-x*math.log(x,2)    
-
-
+        
+    entropy = -entropy
     return entropy
 
 ##################################################
@@ -446,12 +435,7 @@ def main():
         preprocess2(dataset)
 
         print ("Computing tree...")
-        if  ("-w" in args):
-        	global theta
-        	theta=float(args[args.index("-w")+1])
-
         root = compute_tree(dataset, None, classifier) 
-
         if ("-s" in args):
             print_disjunctive(root, dataset, "")
             print( "\n")

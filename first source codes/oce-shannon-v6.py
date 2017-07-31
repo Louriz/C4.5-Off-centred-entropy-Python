@@ -29,6 +29,8 @@ def deldup(li):
 #Off-centred entropy parameter
 theta=0.8
 big_theta=[]
+tree_size=0
+#recall=0
 ##################################################
 # data class to hold csv data
 ##################################################
@@ -138,6 +140,111 @@ class treeNode():
         self.lower_child = None
         self.children = None
         self.height = None
+#############################################
+#compute tree new method avergae of all methods
+############################################"
+def compute_tree_average(dataset, parent_node, classifier,datatypes):
+    node = treeNode(True, None, None, None, parent_node, None, None, 0)
+    if (parent_node == None):
+        node.height = 0
+    else:
+        node.height = node.parent.height + 1
+
+    count, classes = find_classes(dataset.examples, dataset.attributes, classifier)
+    for c in classes:
+        if (len(dataset.examples) == count[c]):
+            node.classification = c
+            node.is_leaf = True
+            return node
+        else:
+            node.is_leaf = False
+    attr_to_split = None # The index of the attribute we will split on
+    max_gain = 0 # The gain given by the best attribute
+    split_val = [] 
+    min_gain = 0.01
+    dataset_entropy = average_entropy(dataset, classifier)
+    for attr_index in range(len(dataset.examples[0])):
+
+        if (dataset.attributes[attr_index] != classifier):
+            local_max_gain = 0
+            local_split_val = None
+            attr_value_list = [example[attr_index] for example in dataset.examples] # these are the values we can split on, now we must find the best one
+            attr_value_list = list(set(attr_value_list)) # remove duplicates from list of all attribute values
+            if(datatypes[attr_index]==True):
+                attr_value_list = sorted(attr_value_list)
+                total = len(attr_value_list)
+                ten_percentile = int(total/10)
+                new_list = []
+                for x in range(1, 10):
+                    new_list.append(attr_value_list[x*ten_percentile])
+                attr_value_list = new_list
+
+                for val in attr_value_list:
+                    # calculate the gain if we split on this value
+                    # if gain is greater than local_max_gain, save this gain and this value
+                    local_gain = calc_gain_average(dataset, classifier, dataset_entropy, attr_index,datatypes, val) # calculate the gain if we split on this value
+      
+                    if (local_gain >= local_max_gain):
+                        local_max_gain = local_gain
+                        local_split_val = val
+            else:
+                local_max_gain=calc_gain_average(dataset, classifier, dataset_entropy, attr_index,datatypes)
+                local_split_val=attr_value_list
+            
+            if (local_max_gain >= max_gain):
+                max_gain = local_max_gain
+
+                split_val = local_split_val
+                attr_to_split = attr_index
+            #print(max_gain,split_val)
+    #attr_to_split is now the best attribute according to our gain metric
+    if (split_val is None or attr_to_split is None):
+        #print( "Something went wrong. Couldn't find an attribute to split on or a split value.")
+        node.is_leaf = True
+        node.classification = classify_leaf(dataset, classifier)
+
+        return node
+    elif (max_gain <= min_gain or node.height >tree_size):
+
+        node.is_leaf = True
+        node.classification = classify_leaf(dataset, classifier)
+        #print(dataset.examples)
+
+        return node
+    
+    node.attr_split_index = attr_to_split
+    node.attr_split = dataset.attributes[attr_to_split]
+    node.attr_split_value = split_val
+    
+
+    if (isinstance(split_val,Number)):
+        # currently doing one split per node so only two datasets are created
+        upper_dataset = data(classifier)
+        lower_dataset = data(classifier)
+        upper_dataset.attributes = dataset.attributes
+        lower_dataset.attributes = dataset.attributes
+        upper_dataset.attr_types = dataset.attr_types
+        lower_dataset.attr_types = dataset.attr_types
+        for example in dataset.examples:
+            if (attr_to_split is not None and example[attr_to_split] >= split_val):
+                upper_dataset.examples.append(example)
+            elif (attr_to_split is not None):
+                lower_dataset.examples.append(example)
+
+        node.upper_child = compute_tree_average(upper_dataset, node, classifier,datatypes)
+        node.lower_child = compute_tree_average(lower_dataset, node, classifier,datatypes)
+
+        return node
+    children_datasets=[data(classifier) for i in range(len(split_val))]
+    for i in range(len(split_val)):
+        children_datasets[i].attributes=dataset.attributes
+        children_datasets[i].attr_types=dataset.attr_types
+        for example in dataset.examples:
+            if (example[node.attr_split_index]==split_val[i]):
+                children_datasets[i].examples.append(example)
+        node.children=[compute_tree_average(children_datasets[j],node,classifier,datatypes) for j in range(len(split_val))]
+    #print(node.children)
+    return node
 ###############################################
 # compute tree for shannon
 #############################################
@@ -202,7 +309,7 @@ def compute_tree_shannon(dataset, parent_node, classifier,datatypes):
         node.classification = classify_leaf(dataset, classifier)
 
         return node
-    elif (max_gain <= min_gain or node.height >34):
+    elif (max_gain <= min_gain or node.height >tree_size):
 
         node.is_leaf = True
         node.classification = classify_leaf(dataset, classifier)
@@ -320,7 +427,7 @@ def compute_tree_oce(dataset, parent_node, classifier,datatypes):
         node.classification = classify_leaf(dataset, classifier)
 
         return node
-    elif (max_gain <= min_gain or node.height >34):
+    elif (max_gain <= min_gain or node.height >tree_size):
 
         node.is_leaf = True
         node.classification = classify_leaf(dataset, classifier)
@@ -423,7 +530,7 @@ def compute_tree_oae(dataset, parent_node, classifier,datatypes):
         node.classification = classify_leaf(dataset, classifier)
 
         return node
-    elif (max_gain <= min_gain or node.height >34):
+    elif (max_gain <= min_gain or node.height >tree_size):
 
         node.is_leaf = True
         node.classification = classify_leaf(dataset, classifier)
@@ -493,7 +600,50 @@ def find_theta(dataset):
     #print(theta,big_theta)
 ######  
 ############################################################
+def average_entropy(dataset,classifier):
 
+    return ((shannon_entropy(dataset,classifier)+oce_entropy(dataset,classifier)+oae_entropy(dataset,classifier))/3)
+#####################################################################
+def calc_gain_average(dataset,classifier, entropy, attr_index,datatypes, val=None):
+    
+    attr_entropy = 0
+    total_examples = len(dataset.examples);
+    #categorical variable
+    if(datatypes[attr_index]==False):
+        table=dataset_to_table(dataset)
+        li=table[dataset.attributes[attr_index]]
+        unique_li=deldup(li)
+        datasets=[None for i in range(len(unique_li))]
+        for i in range(len(unique_li)):
+            datasets[i]=data(classifier)
+            datasets[i].attributes=dataset.attributes
+            for example in dataset.examples:
+                if example[attr_index]==unique_li[i]:
+                   datasets[i].examples.append(example)
+            attr_entropy+=average_entropy(datasets[i],classifier)*len(datasets[i].examples)/total_examples
+        
+    # numerical variable  
+    else:
+        
+        gain_upper_dataset = data(classifier) # instanciate the class data with the parametr classifier
+        gain_lower_dataset = data(classifier)
+        gain_upper_dataset.attributes = dataset.attributes
+        gain_lower_dataset.attributes = dataset.attributes
+        gain_upper_dataset.attr_types = dataset.attr_types
+        gain_lower_dataset.attr_types = dataset.attr_types
+        for example in dataset.examples:
+            if (example[attr_index] >= val):
+                gain_upper_dataset.examples.append(example)
+            elif (example[attr_index] < val):
+                gain_lower_dataset.examples.append(example)
+
+        if (len(gain_upper_dataset.examples) == 0 or len(gain_lower_dataset.examples) == 0): #Splitting didn't actually split (we tried to split on the max or min of the attribute's range)
+            return -1
+
+        attr_entropy += average_entropy(gain_upper_dataset, classifier)*len(gain_upper_dataset.examples)/total_examples
+        attr_entropy += average_entropy(gain_lower_dataset, classifier)*len(gain_lower_dataset.examples)/total_examples
+
+    return entropy - attr_entropy    # this is the IG ( Information Gain)
 ##################################################
 # Calculate the entropy of the current dataset : Entropy(dataset)= - Sigma( pi*log2(pi)) i=1:k  , k is the number of modalities in the class
 #########################"#############################"
@@ -740,7 +890,7 @@ def prune_tree(root, node, dataset, best_score):
         # run validate_tree on a tree with the nodes parent as a leaf with its classification
         node.parent.is_leaf = True
         node.parent.classification = node.classification
-        if (node.height < 34):
+        if (node.height < tree_size):
             new_score = validate_tree(root, dataset)
         else:
             new_score = 0
@@ -784,13 +934,19 @@ def validate_tree(node, dataset):
 
 ##################################################
 # Validate example
+
 ##################################################
 def validate_example(node, example):
+    #global recall
     if (node.is_leaf == True):
         projected = node.classification
         actual = example[-1]
         if (projected == actual): 
+            #global recall
+            #recall+=1
             return 1
+        #elif (projected==actual and projected!='1' ):
+            #return 1
         else:
             return 0
     value = example[node.attr_split_index]
@@ -869,6 +1025,13 @@ def is_number(s):
     except ValueError:
         return False
 
+
+def check_row(example):
+    
+    for i in range(len(example)):
+        if (example[i]=="" or example[i]=="?"):
+            return False
+    return True
 # main function, organize data and execute functions based on input
 # need to account for missing data
 ##################################################
@@ -891,10 +1054,22 @@ def main():
         read_data(dataset, datafile)
         datatypes=[False for i in range(len(dataset.attributes))]
         #print(datatypes)
-        for i in range(len(dataset.examples[0])-1): # we exclude the last column because we do classification so it is set to False by default
-            if(is_number(dataset.examples[0][i])):
+        l=0
+        while (not check_row(dataset.examples[l])):  # we construct the datatypes only if all cases are not empty or missing values
+        	l+=1
+        for i in range(len(dataset.examples[l])-1): # we exclude the last column because we do classification so it is set to False by default
+            if(is_number(dataset.examples[l][i])):
                 datatypes[i]=True
-        #print(datatypes)
+        
+        numerical_features=0
+        categorical_features=0
+        for i in range(len(datatypes)):
+            if(datatypes[i]==True):
+                numerical_features+=1
+        categorical_features=len(datatypes)-numerical_features-1
+
+
+
         arg3 = args[2]
         if (arg3 in dataset.attributes):
             classifier = arg3
@@ -911,6 +1086,9 @@ def main():
         unprocessed = copy.deepcopy(dataset)
         dataset.attr_types=datatypes
         preprocess2(dataset)
+        if("-z" in  args):
+            global tree_size
+            tree_size=int(args[args.index("-z")+1])
         print ("Computing tree...")
         #============================ LOO: Leave One Out. This part will not be executed unless you pass the paramter "-l". Here you are not obliged to pass the K
         ##### It is fixed to the number of instances in your dataset.
@@ -923,6 +1101,9 @@ def main():
             postpruning_score_shannon=0
             prepruning_score_oae=0
             postpruning_score_oae=0
+            prepruning_score_average=0
+            postpruning_score_average=0
+
 
             for k in range(K):
                 #print ("Doing fold ", k)
@@ -937,42 +1118,69 @@ def main():
                 root_oce = compute_tree_oce(training_set, None, classifier,datatypes)
                 root_shannon=compute_tree_shannon(training_set,None,classifier,datatypes)
                 root_oae=compute_tree_oae(training_set,None,classifier,datatypes)
+                root_average=compute_tree_average(training_set,None,classifier,datatypes)
 
                 # best scores for each root
                 best_score_oce = validate_tree(root_oce, test_set)
                 prepruning_score_oce+=best_score_oce
-
+                
                 best_score_shannon = validate_tree(root_shannon, test_set)
                 prepruning_score_shannon+=best_score_shannon
 
                 best_score_oae=validate_tree(root_oae,test_set)
                 prepruning_score_oae+=best_score_oae
 
+                best_score_average=validate_tree(root_average,test_set)
+                prepruning_score_average+=best_score_average
+                
 
 
                 if ("-p" in args):
                     post_prune_accuracy_oce = 100*prune_tree(root_oce, root_oce, test_set, best_score_oce)
                     postpruning_score_oce+=post_prune_accuracy_oce
-
+                    
                     post_prune_accuracy_shannon = 100*prune_tree(root_shannon, root_shannon, test_set, best_score_shannon)
                     postpruning_score_shannon+=post_prune_accuracy_shannon
 
                     post_prune_accuracy_oae=100*prune_tree(root_oae,root_oae,test_set,best_score_oae)
-                    postpruning_score_oae+=post_prune_accuracy_oce
+                    postpruning_score_oae+=post_prune_accuracy_oae
 
-            print("========================Result for OCE :==============================")
+                    post_prune_accuracy_average=100*prune_tree(root_average,root_average,test_set,best_score_average)
+                    postpruning_score_average+=post_prune_accuracy_average
+            print("======== General information about the dataset: ============== \n")
+            print("Total instances : ",len(dataset.examples))
+            print("Features :", len(dataset.attributes)-1," including", numerical_features,"numerical features and ",categorical_features,"categorical features")
+            print("Method used for validation : LOO (leave-One-Out)")
+
+
+
+            print("\n")        
+            print("=======================Result for OCE :==============================")
+            print("\n")
             print ("Initial (pre-pruning) validation set score for LOO is : " + str(100*(prepruning_score_oce/K)) +"%")
             print ("Post-pruning score on validation set for LOO with LOO is : " + str(postpruning_score_oce/K) + "%")
+            print("\n")
 
 
-            print("=========================Result for Shannon :==========================")
+            print("=======================Result for Shannon :==========================")
+            print("\n")
             print ("Initial (pre-pruning) validation set score for LOO  is : " + str(100*(prepruning_score_shannon/K)) +"%")
             print ("Post-pruning score on validation set for LOO is : " + str(postpruning_score_shannon/K) + "%")
-
-            print("=======================Result for OAE : =============================")
+            print("\n")
+            print("=======================Result for OAE :  =============================")
+            print("\n")
             print ("Initial (pre-pruning) validation set score for LOO is : " + str(100*(prepruning_score_oae/K)) +"%")
             print ("Post-pruning score on validation set for LOO with LOO is : " + str(postpruning_score_oae/K) + "%")
+            print("\n")
 
+
+
+
+            print("=======================Result for AVG : =============================")
+            print("\n")
+            print ("Initial (pre-pruning) validation set score for LOO is : " + str(100*(prepruning_score_average/K)) +"%")
+            print ("Post-pruning score on validation set for LOO with LOO is : " + str(postpruning_score_average/K) + "%")
+            
 
         #============================== Cross validation: will not be executed unless you pass the paramter "-k" followed by the number of folds K
         if ("-k" in args):   
@@ -984,6 +1192,11 @@ def main():
             postpruning_score_shannon=0
             prepruning_score_oae=0
             postpruning_score_oae=0
+            prepruning_score_average=0
+            postpruning_score_average=0
+
+
+
             for k in range(K):
                 #print ("Doing fold ", k)
                 training_set.examples = [x for i, x in enumerate(dataset.examples) if i % K != k]
@@ -998,6 +1211,8 @@ def main():
                 root_oce = compute_tree_oce(training_set, None, classifier,datatypes)
                 root_shannon=compute_tree_shannon(training_set,None,classifier,datatypes)
                 root_oae=compute_tree_oae(training_set,None,classifier,datatypes)
+                root_average=compute_tree_average(training_set,None,classifier,datatypes)
+
 
                 #best scores for roots
                 best_score_oce = validate_tree(root_oce, test_set)
@@ -1009,6 +1224,9 @@ def main():
                 best_score_oae=validate_tree(root_oae,test_set)
                 prepruning_score_oae+=best_score_oae
 
+                best_score_average=validate_tree(root_average,test_set)
+                prepruning_score_average+=best_score_average
+
                 if ("-p" in args):
                     post_prune_accuracy_oce = 100*prune_tree(root_oce, root_oce, test_set, best_score_oce)
                     postpruning_score_oce+=post_prune_accuracy_oce
@@ -1019,20 +1237,33 @@ def main():
                     post_prune_accuracy_oae=100*prune_tree(root_oae,root_oae,test_set,best_score_oae)
                     postpruning_score_oae+=post_prune_accuracy_oae
 
+                    post_prune_accuracy_average=100*prune_tree(root_average,root_average,test_set,best_score_average)
+                    postpruning_score_average+=post_prune_accuracy_average
+            print("======== General information about the dataset: ============== \n")
+            print("Total instances : ",len(dataset.examples))
+            print("Features :", len(dataset.attributes)-1," including", numerical_features,"numerical features and ",categorical_features,"categorical features")
+            print("Method used for validation : Cross validation with ",K,"folds\n")
+            print("\n")
 
-            print("========================Result for OCE :==============================")
+            print("========================Result for OCE :==============================\n")
             print ("Initial (pre-pruning) validation set score for", K,"-folds  is : " + str(100*(prepruning_score_oce/K)) +"%")
-            print ("Post-pruning score on validation set for",K,"-folds is : " + str(postpruning_score_oce/K) + "%")
+            print ("Post-pruning score on validation set for",K,"-folds is : " + str(postpruning_score_oce/K) + "%\n")
 
 
-            print("=========================Result for Shannon :==========================")
+            print("=========================Result for Shannon :==========================\n")
             print ("Initial (pre-pruning) validation set score for",K,"-folds is : " + str(100*(prepruning_score_shannon/K)) +"%")
-            print ("Post-pruning score on validation set for ",K,"-folds is : " + str(postpruning_score_shannon/K) + "%")
+            print ("Post-pruning score on validation set for ",K,"-folds is : " + str(postpruning_score_shannon/K) + "%\n")
 
-            print("========================Result for OAE :==============================")
+            print("========================Result for OAE :==============================\n")
             print ("Initial (pre-pruning) validation set score for", K,"-folds  is : " + str(100*(prepruning_score_oae/K)) +"%")
-            print ("Post-pruning score on validation set for",K,"-folds is : " + str(postpruning_score_oae/K) + "%")
+            print ("Post-pruning score on validation set for",K,"-folds is : " + str(postpruning_score_oae/K) + "%\n")
 
+
+            print("========================Result for AVG :==============================\n")
+            print ("Initial (pre-pruning) validation set score for", K,"-folds  is : " + str(100*(prepruning_score_average/K)) +"%")
+            print ("Post-pruning score on validation set for",K,"-folds is : " + str(postpruning_score_average/K) + "%\n")
+
+            
 
 
         #=========================== Train and validation set separated. This part of code will be executed where the paramters "-k" and "-l" not in args============================================================ 
@@ -1047,11 +1278,18 @@ def main():
             postpruning_score_shannon=0
             prepruning_score_oae=0
             postpruning_score_oae=0
+            prepruning_score_average=0
+            postpruning_score_average=0
+
+
             K=1
             for i in range(K):
                 root_oce = compute_tree_oce(dataset, None, classifier,datatypes)
                 root_shannon=compute_tree_shannon(dataset,None,classifier,datatypes) 
                 root_oae=compute_tree_oae(dataset,None,classifier,datatypes)
+                root_average=compute_tree_average(dataset,None,classifier,datatypes)
+
+
 
                 if ("-s" in args):
                     print_disjunctive(root_oce, dataset, "")
@@ -1080,6 +1318,12 @@ def main():
 
                     best_score_oae=validate_tree(root_oae,validateset)
                     prepruning_score_oae+=best_score_oae
+
+                    best_score_average=validate_tree(root_average,validateset)
+                    prepruning_score_average+=best_score_average
+
+
+
                     if ("-p" in args):
                         post_prune_accuracy_oce = 100*prune_tree(root_oce, root_oce, validateset, best_score_oce)
                         postpruning_score_oce+=post_prune_accuracy_oce
@@ -1089,19 +1333,34 @@ def main():
 
                         post_prune_accuracy_oae=100*prune_tree(root_oae,root_oae,validateset,best_score_oae)
                         postpruning_score_oae+=post_prune_accuracy_oae
-            print("========================Result for OCE :==============================")
+
+
+                        post_prune_accuracy_average=100*prune_tree(root_average,root_average,validateset,best_score_average)
+                        postpruning_score_average+=post_prune_accuracy_average
+
+            print("======== General information about the dataset: ============== \n")
+            print("Total instances : ",len(dataset.examples))
+            print("Features :", len(dataset.attributes)-1," including", numerical_features,"numerical features and ",categorical_features,"categorical features")
+            print("Method used for validation : training-test sets \n")
+            
+            print("========================Result for OCE :==============================\n")
             print ("Initial (pre-pruning) validation set score is : " + str(100*(prepruning_score_oce/K)) +"%")
-            print ("Post-pruning score on validation set  is : " + str(postpruning_score_oce/K) + "%")
+            print ("Post-pruning score on validation set  is : " + str(postpruning_score_oce/K) + "%\n")
 
 
-            print("=========================Result for Shannon :==========================")
+            print("=========================Result for Shannon :==========================\n")
             print ("Initial (pre-pruning) validation set score  is : " + str(100*(prepruning_score_shannon/K)) +"%")
-            print ("Post-pruning score on validation set f is : " + str(postpruning_score_shannon/K) + "%")
+            print ("Post-pruning score on validation set f is : " + str(postpruning_score_shannon/K) + "%\n")
 
 
-            print("========================Result for OAE :==============================")
+            print("========================Result for OAE :==============================\n")
             print ("Initial (pre-pruning) validation set score is : " + str(100*(prepruning_score_oae/K)) +"%")
-            print ("Post-pruning score on validation set  is : " + str(postpruning_score_oae/K) + "%")
+            print ("Post-pruning score on validation set  is : " + str(postpruning_score_oae/K) + "%\n")
+
+
+            print("========================Result for AVG :==============================\n")
+            print ("Initial (pre-pruning) validation set score is : " + str(100*(prepruning_score_average/K)) +"%")
+            print ("Post-pruning score on validation set  is : " + str(postpruning_score_average/K) + "%\n")
             """
 	                best_score = validate_tree(root, validateset)
 	                prepruning_score+=best_score

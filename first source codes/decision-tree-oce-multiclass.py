@@ -9,10 +9,10 @@ import ast
 import csv
 from collections import Counter
 
-##################################################
-#parameter for the distribution of modalities
-w=0
-##################################################
+################Crucial parameters################
+#Off-centred entropy parameter
+theta=0.8
+big_theta=[0.24,0.75,0.0001]
 ##################################################
 # data class to hold csv data
 ##################################################
@@ -50,43 +50,41 @@ def preprocess2(dataset):
     print ("Preprocessing data...")
 
     class_values = [example[dataset.class_index] for example in dataset.examples]
+
     class_mode = Counter(class_values)
+    classes=class_mode.keys()
+    
     class_mode = class_mode.most_common(1)[0][0]
-                         
+
+    attr_modes = [0]*len(dataset.attributes)                 
     for attr_index in range(len(dataset.attributes)):
 
-        ex_0class = filter(lambda x: x[dataset.class_index] == '0', dataset.examples)
-        values_0class = [example[attr_index] for example in ex_0class]  
-                           
-        ex_1class = filter(lambda x: x[dataset.class_index] == '1', dataset.examples)
-        values_1class = [example[attr_index] for example in ex_1class]
+        ex_class={}
+        values_class={}
+        values={}
+        mode={}
+
+        for c in classes:
+
+            ex_class[c] = filter(lambda x: x[dataset.class_index] == c, dataset.examples)
+            values_class[c] = [example[attr_index] for example in ex_class[c]]  
                 
-        values = Counter(values_0class)
-        value_counts = values.most_common()
+            values[c] = Counter(values_class[c])
+            
         
-        mode0 = values.most_common(1)[0][0]
-        if mode0 == '?':
-            mode0 = values.most_common(2)[1][0]
+            mode[c] = values[c].most_common(1)[0][0]
+            if mode[c] == '?':
+                mode[c] = values.most_common(2)[1][0]
 
-        values = Counter(values_1class)
-        mode1 = values.most_common(1)[0][0]
-        
-        if mode1 == '?':
-            mode1 = values.most_common(2)[1][0]
-
-        mode_01 = [mode0, mode1]
-
-        attr_modes = [0]*len(dataset.attributes)
-        attr_modes[attr_index] = mode_01
         
         for example in dataset.examples:
             if (example[attr_index] == '?'):
-                if (example[dataset.class_index] == '0'):
-                    example[attr_index] = attr_modes[attr_index][0]
-                elif (example[dataset.class_index] == '1'):
-                    example[attr_index] = attr_modes[attr_index][1]
-                else:
-                    example[attr_index] = class_mode
+                for c in classes:
+                    if (example[dataset.class_index] == c):
+                        example[attr_index] = mode[c]
+                    
+                    else:
+                        example[attr_index] = class_mode
 
         #convert attributes that are numeric to floats
         for example in dataset.examples:
@@ -132,17 +130,14 @@ def compute_tree(dataset, parent_node, classifier):
     else:
         node.height = node.parent.height + 1
 
-    ones = one_count(dataset.examples, dataset.attributes, classifier)
-    if (len(dataset.examples) == ones):
-        node.classification = 1
-        node.is_leaf = True
-        return node
-    elif (ones == 0):
-        node.classification = 0
-        node.is_leaf = True
-        return node
-    else:
-        node.is_leaf = False
+    count, classes = find_classes(dataset.examples, dataset.attributes, classifier)
+    for c in classes:
+        if (len(dataset.examples) == count[c]):
+            node.classification = c
+            node.is_leaf = True
+            return node
+        else:
+            node.is_leaf = False
     attr_to_split = None # The index of the attribute we will split on
     max_gain = 0 # The gain given by the best attribute
     split_val = None 
@@ -169,11 +164,11 @@ def compute_tree(dataset, parent_node, classifier):
                 # if gain is greater than local_max_gain, save this gain and this value
                 local_gain = calc_gain(dataset, dataset_entropy, val, attr_index) # calculate the gain if we split on this value
   
-                if (local_gain > local_max_gain):
+                if (local_gain >= local_max_gain):
                     local_max_gain = local_gain
                     local_split_val = val
 
-            if (local_max_gain > max_gain):
+            if (local_max_gain >= max_gain):
                 max_gain = local_max_gain
                 split_val = local_split_val
                 attr_to_split = attr_index
@@ -181,7 +176,7 @@ def compute_tree(dataset, parent_node, classifier):
     #attr_to_split is now the best attribute according to our gain metric
     if (split_val is None or attr_to_split is None):
         print( "Something went wrong. Couldn't find an attribute to split on or a split value.")
-    elif (max_gain <= min_gain or node.height > 20):
+    elif (max_gain <= min_gain or node.height >= 20):
 
         node.is_leaf = True
         node.classification = classify_leaf(dataset, classifier)
@@ -199,7 +194,7 @@ def compute_tree(dataset, parent_node, classifier):
     upper_dataset.attr_types = dataset.attr_types
     lower_dataset.attr_types = dataset.attr_types
     for example in dataset.examples:
-        if (attr_to_split is not None and example[attr_to_split] >= split_val):
+        if (attr_to_split is not None and example[attr_to_split] >split_val):
             upper_dataset.examples.append(example)
         elif (attr_to_split is not None):
             lower_dataset.examples.append(example)
@@ -213,26 +208,78 @@ def compute_tree(dataset, parent_node, classifier):
 # Classify dataset
 ##################################################
 def classify_leaf(dataset, classifier):
-    ones = one_count(dataset.examples, dataset.attributes, classifier)  # count number of classied as '1'
-    total = len(dataset.examples)
-    zeroes = total - ones
-    if (ones >= zeroes):
-        return 1
+    count, classes = find_classes(dataset.examples, dataset.attributes, classifier)  # count number of classied as '1'
+    max=0
+    for c in classes:
+        if count[c]>=max:
+            max=count[c]
+            cfin=c
+    return cfin
+    #total = len(dataset.examples)
+    #zeroes = total - ones
+    #if (ones >= zeroes):
+    #    return 1
+    #else:
+    #    return 0
+##########################################################
+#### Find theta
+############################################
+def find_theta(dataset):
+    count,classes=find_classes(dataset.examples, dataset.attributes, dataset.classifier)
+    class_values = [example[dataset.class_index] for example in dataset.examples]
+    class_mode = Counter(class_values)
+    
+    global theta , big_theta
+    total_examples=len(dataset.examples)
+    if len(classes)==2:
+        theta=class_mode.most_common()[0][1]/total_examples
     else:
-        return 0
-
+        big_theta=[count[c] / total_examples for c in classes]
+    print(theta,big_theta)
 ##################################################
 # Calculate the entropy of the current dataset : Entropy(dataset)= - Sigma( pi*log2(pi)) i=1:k  , k is the number of modalities in the class
 ##################################################
-def calc_dataset_entropy(dataset, classifier):
-    ones1 = one_count(dataset.examples, dataset.attributes, classifier)  # frequency of "1"
+def calc_dataset_entropy(dataset, classifier):  # off centered entropy
+    #ones = one_count(dataset.examples, dataset.attributes, classifier)  # count number of examples with classification "1"
+    count,classes=find_classes(dataset.examples, dataset.attributes, classifier)
     total_examples = len(dataset.examples);
-    zeros0=total_examples-ones1  # frequency of "0"
-    w=0.76
+    #print(count)
     entropy = 0
-    l1=(w*ones1+1)/(total_examples+2)
-    l0=(w*zeros0+1)/(total_examples+2)
-    entropy += (l1*(1-l1))/((-2*w+1)*l1+w*w)+(l0*(1-l0))/((-2*w+1)*l0+w*w)  
+    probabilities = [count[c] / total_examples for c in classes]
+    q=len(probabilities)
+    #find_theta(dataset)
+    #p=theta #if we fix p=theta we always get into the same case (p<=theta) and x=1/2 which means we always get an entropy=1!!!!!!!!!!!
+    if q==2:
+        if (probabilities[1]<=theta):
+            x=probabilities[1]/(2*theta)
+            if (x==1 or x==0):
+                entropy+=0
+            else:
+                entropy+=-x*math.log(x,2)-(1-x)*math.log(1-x,2)
+    
+        if (probabilities[1]>theta):
+            x=(probabilities[1]+1-2*theta)/(2*(1-theta))
+            if (x==1 or x==0):
+                entropy+=0
+            else:
+                entropy+=-x*math.log(x,2)-(1-x)*math.log(1-x,2)    
+    else:
+        for i in range(q):
+            if (probabilities[i]<=big_theta[i]):
+                x=probabilities[i]/(q*big_theta[i])
+                if (x==1 or x==0):
+                    entropy+=0
+                else:
+                    entropy+=-x*math.log(x,2)-(1-x)*math.log(1-x,2)
+    
+        if (probabilities[i]>big_theta[i]):
+            x=(q*(probabilities[i]-big_theta[i])+1-probabilities[i])/(q*(1-big_theta[i]))
+            if (x==1 or x==0):
+                entropy+=0
+            else:
+                entropy+=-x*math.log(x,2)-(1-x)*math.log(1-x,2) 
+   
+
     return entropy
 
 ##################################################
@@ -262,6 +309,32 @@ def calc_gain(dataset, entropy, val, attr_index):
 
     return entropy - attr_entropy    # this is the IG ( Information Gain)
 
+#########################################
+# Determine classes
+###################################
+classes=[]
+def find_classes(instances,attributes,classifier):
+    global classes
+    class_index = None
+    #find index of classifier
+    for a in range(len(attributes)):
+        if attributes[a] == classifier:
+            class_index = a
+        else:
+            class_index = len(attributes) - 1
+    for i in instances:
+        if i[class_index] not in classes :
+            classes.append(i[class_index])
+    count={}
+    for c in classes:
+        count[c]=0
+    for i in instances:
+        for c in classes:
+            if i[class_index]==c:
+                count[c]+=1
+    #print (count)
+    return  count, classes
+
 ##################################################
 # count number of examples with classification "1"
 ##################################################
@@ -277,6 +350,8 @@ def one_count(instances, attributes, classifier):
     for i in instances:
         if i[class_index] == "1":
             count += 1
+
+    #print (count)
     return count
 
 ##################################################
@@ -334,7 +409,7 @@ def validate_tree(node, dataset):
 def validate_example(node, example):
     if (node.is_leaf == True):
         projected = node.classification
-        actual = int(example[-1])
+        actual = example[-1]
         if (projected == actual): 
             return 1
         else:
@@ -432,11 +507,16 @@ def main():
                 
         unprocessed = copy.deepcopy(dataset)
         preprocess2(dataset)
-        if  ("-w" in args):
-            global w
-            w=float(args[args.index("-w")+1])
+        global theta
+        global big_theta
+        #find_theta(dataset)
         print ("Computing tree...")
+        if  ("-w" in args):
+        	global theta
+        	theta=float(args[args.index("-w")+1])
+
         root = compute_tree(dataset, None, classifier) 
+
         if ("-s" in args):
             print_disjunctive(root, dataset, "")
             print( "\n")

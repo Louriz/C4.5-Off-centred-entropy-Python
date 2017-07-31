@@ -1,3 +1,4 @@
+## import needed libraries
 from __future__ import division
 import math
 import operator
@@ -11,8 +12,12 @@ from collections import Counter
 from collections import OrderedDict
 from numbers import Number
 
-#================== for categorical entropy=================================
+#====================================================
 def dataset_to_table(dataset):
+    '''
+    transform the dataset 'dataset' into a dictionary where the keys are features and values are lists of values for each features
+    this dictionary will be used to compute the entropy for categorical variables
+	'''
     table={}
     for k in range(len(dataset.attributes)):
         table[dataset.attributes[k]]=[]
@@ -54,24 +59,6 @@ def read_data(dataset, datafile):
 
     #list attributes
     dataset.attributes = dataset.examples.pop(0)
-    #print(dataset.attributes)
-
-    
-    #create array that indicates whether each attribute is a numerical value or not
-    #attr_type = open(datatypes) 
-    #orig_file = attr_type.read()
-    #dataset.attr_types = orig_file.split(',')
-    #dataset.attr_types=['true','false','true','false','false','false','false','false','false','false','true','true','true','false','false']
-    #datatypes=['false','false','false','false','true','false']
-    #dataset.attr_types=['true','true','true','true','true','true','true','true','true','true','true','true','true','false']
-    #dataset.attr_types=['false','true','false','false','true','false','false','true','false','false','true','false','true','false','false','true','false','true','false','false','false']
-    #dataset.attr_types=[True, True,True,True,False] #  iris
-    #dataset.attr_types=['true','true','true','true','true','true','true','true','false'] #  pima
-
-    #dataset.attr_types=datatypes
-    #dataset.attr_types=['true','true','true','true','true','true','true','true','true','false'] #  glass
-
-
 
 
 
@@ -140,8 +127,24 @@ class treeNode():
         self.lower_child = None
         self.children = None
         self.height = None
+
+##################################################
+# compute tree recursively
+##################################################
+
+# initialize Tree
+    # if dataset is pure (all one result) or there is other stopping criteria then stop
+    # for all attributes a in dataset
+        # compute information-theoretic criteria if we split on a
+    # abest = best attribute according to above
+    # tree = create a decision node that tests abest in the root
+    # dv (v=1,2,3,...) = induced sub-datasets from D based on abest
+    # for all dv
+        # tree = compute_tree_oce(dv)
+        # attach tree to the corresponding branch of Tree
+    # return tree 
 #############################################
-#compute tree new method avergae of all methods
+#compute tree with a  new method  that averages  all methods preused ( oce, oae and shannon)
 ############################################"
 def compute_tree_average(dataset, parent_node, classifier,datatypes):
     node = treeNode(True, None, None, None, parent_node, None, None, 0)
@@ -351,20 +354,8 @@ def compute_tree_shannon(dataset, parent_node, classifier,datatypes):
     #print(node.children)
     return node
 ##################################################
-# compute tree recursively
-##################################################
-
-# initialize Tree
-    # if dataset is pure (all one result) or there is other stopping criteria then stop
-    # for all attributes a in dataset
-        # compute information-theoretic criteria if we split on a
-    # abest = best attribute according to above
-    # tree = create a decision node that tests abest in the root
-    # dv (v=1,2,3,...) = induced sub-datasets from D based on abest
-    # for all dv
-        # tree = compute_tree_oce(dv)
-        # attach tree to the corresponding branch of Tree
-    # return tree 
+# root oce
+###################################################
 
 def compute_tree_oce(dataset, parent_node, classifier,datatypes):
     node = treeNode(True, None, None, None, parent_node, None, None, 0)
@@ -467,8 +458,8 @@ def compute_tree_oce(dataset, parent_node, classifier,datatypes):
         node.children=[compute_tree_oce(children_datasets[j],node,classifier,datatypes) for j in range(len(split_val))]
     #print(node.children)
     return node
-
-############ compute root oae======================
+#####################################################
+############ compute root oae#########################
 def compute_tree_oae(dataset, parent_node, classifier,datatypes):
     node = treeNode(True, None, None, None, parent_node, None, None, 0)
     if (parent_node == None):
@@ -1015,7 +1006,11 @@ def print_disjunctive(node, dataset, dnf_string):
         print_disjunctive(node.lower_child, dataset, lower)
         return
 ##############################################
-#isnumber function to use in datatypes
+#is_number() will be used to fill in the datatypes list
+# if the case can be float then we consider it as numeric, otherwise it is categorical
+# we use only one row to do so
+# to avoid the fact that there may be a row with missing values, we will use the check_row() function to fill the datatypes only if the rows is completely filled in
+
 
 ##################################################
 def is_number(s):
@@ -1025,7 +1020,11 @@ def is_number(s):
     except ValueError:
         return False
 
+#####################################################
 
+#check_row():
+# if a row contains a missing value '?' or a vide case we skip it 
+################################################
 def check_row(example):
     
     for i in range(len(example)):

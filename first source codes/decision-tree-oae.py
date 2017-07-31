@@ -9,9 +9,10 @@ import ast
 import csv
 from collections import Counter
 
-################Crucial parameters################
-#Off-centred entropy parameter
-theta=0.89
+##################################################
+#parameter for the distribution of modalities
+w=0
+##################################################
 ##################################################
 # data class to hold csv data
 ##################################################
@@ -224,29 +225,14 @@ def classify_leaf(dataset, classifier):
 # Calculate the entropy of the current dataset : Entropy(dataset)= - Sigma( pi*log2(pi)) i=1:k  , k is the number of modalities in the class
 ##################################################
 def calc_dataset_entropy(dataset, classifier):
-    ones = one_count(dataset.examples, dataset.attributes, classifier)  # count number of examples with classification "1"
+    ones1 = one_count(dataset.examples, dataset.attributes, classifier)  # frequency of "1"
     total_examples = len(dataset.examples);
+    zeros0=total_examples-ones1  # frequency of "0"
+    w=0.76
     entropy = 0
-    p = ones / total_examples
-    x=p
-    if (p<=theta):
-        if ( x!=0):
-            x=p/(2*theta)
-            entropy += x * math.log(x, 2)
-        x=1-x
-        if (x != 0 ):
-            
-            entropy += x * math.log(x, 2)
-    if(p>theta):
-        if ( x!=0):
-            x=(p+1-2*theta)/(2*(1-theta))
-            entropy += x * math.log(x, 2)
-        x=1-x
-        if (x != 0 ):
-            
-            entropy += x * math.log(x, 2)
-
-    entropy = -entropy
+    l1=(total_examples*ones1+1)/(total_examples+2)
+    l0=(total_examples*zeros0+1)/(total_examples+2)
+    entropy += (l1*(1-l1))/((-2*w+1)*l1+w*w)+(l0*(1-l0))/((-2*w+1)*l0+w*w)  
     return entropy
 
 ##################################################
@@ -446,13 +432,11 @@ def main():
                 
         unprocessed = copy.deepcopy(dataset)
         preprocess2(dataset)
-
-        print ("Computing tree...")
         if  ("-w" in args):
-        	global theta
-        	theta=float(args[args.index("-w")+1])
+            global w
+            w=float(args[args.index("-w")+1])
+        print ("Computing tree...")
         root = compute_tree(dataset, None, classifier) 
-
         if ("-s" in args):
             print_disjunctive(root, dataset, "")
             print( "\n")
