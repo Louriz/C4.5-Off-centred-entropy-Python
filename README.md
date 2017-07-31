@@ -7,7 +7,7 @@ A C4.5 Decision Tree python implementation with validation, pruning, and attribu
 Contributors: Ryan Madden and Ally Cody
 
 ## Requirements
-python 2.7.6 [Download](https://www.python.org/download/releases/2.7.6/)
+python 3
 
 ## Files
 * many files (.csv) are available to test our solution.
