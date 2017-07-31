@@ -11,10 +11,10 @@ python 3
 
 ## Files
 * many files (.csv) are available to test our solution.
-* oce-shannon-v8.py - The decision tree program
+* oce-shannon-v9.py - The decision tree program
 
 ## How to run
-oce-shannon-v8.py accepts parameters passed via the command line. The possible paramters are:
+oce-shannon-v9.py accepts parameters passed via the command line. The possible paramters are:
 * Filename for training (Required, must be the first argument after 'python oce-shannon-v6.py')
 * Classifier name (Optional, by default the classifier is the last column of the dataset)
 * Print flag (-s) (Optional, causes the dataset)
@@ -28,20 +28,20 @@ oce-shannon-v8.py accepts parameters passed via the command line. The possible p
 
 #####Example 1
 ```
-python oce-shannon-v8.py btrain.csv -v bvalidate.csv -p  -z 20
+python oce-shannon-v9.py btrain.csv -v bvalidate.csv -p  -z 20
 ```
-This command runs oce-shannon-v8.py with btrain.csv as the training set, bvalidate.csv as the validation set and pruning enabled. The classifier is not specified so it defaults to the last column in the training set. Printing is not enabled. The tree size is 20
+This command runs oce-shannon-v9.py with btrain.csv as the training set, bvalidate.csv as the validation set and pruning enabled. The classifier is not specified so it defaults to the last column in the training set. Printing is not enabled. The tree size is 20
 #####Example 2
 ```
-python oce-shannon-v8.py yeast.csv -k 10 -p  -z 12   
+python oce-shannon-v9.py yeast.csv -k 10 -p  -z 12   
 
 ```
 
-This command runs oce-shannon-v8.py with yeast.csv dataset. Here we apply the cross validation with 10 folds. Pruning is enabled. Tree size is 12
+This command runs oce-shannon-v9.py with yeast.csv dataset. Here we apply the cross validation with 10 folds. Pruning is enabled. Tree size is 12
 
 #####Example 3
 ```
-python oce-shannon-v8.py yellow-small.csv -l -p  -z 3
+python oce-shannon-v9.py yellow-small.csv -l -p  -z 3
 ```
 This command runs oce-shannon-v8.py  with yellow-small.csv dataset. Here we apply LOO( leave one out). Pruning is enabled. Tree size is 3
 
