@@ -22,25 +22,26 @@ oce-shannon-v8.py accepts parameters passed via the command line. The possible p
 * Pruning flag (-p) (Optional, you must include a validation file in order to prune)
 * Cross validation flag (-k) you must add the fold size 
 * LOO(leave one out) flag (-l) ( you do not need to specify the folds, it is equal to size of data)
+* Tree size flag (-z) followed by the size of the tree.
 
 #### Examples
 
 #####Example 1
 ```
-python oce-shannon-v8.py btrain.csv -v bvalidate.csv -p 
+python oce-shannon-v8.py btrain.csv -v bvalidate.csv -p  -z 20
 ```
-This command runs oce-shannon-v8.py with btrain.csv as the training set, bvalidate.csv as the validation set and pruning enabled. The classifier is not specified so it defaults to the last column in the training set. Printing is not enabled.
+This command runs oce-shannon-v8.py with btrain.csv as the training set, bvalidate.csv as the validation set and pruning enabled. The classifier is not specified so it defaults to the last column in the training set. Printing is not enabled. The tree size is 20
 #####Example 2
 ```
-python oce-shannon-v8.py yeast.csv -k 10 -p
+python oce-shannon-v8.py yeast.csv -k 10 -p  -z 12   
 
 ```
 
-This command runs oce-shannon-v8.py with yeast.csv dataset. Here we apply the cross validation with 10 folds. Pruning is enabled. 
+This command runs oce-shannon-v8.py with yeast.csv dataset. Here we apply the cross validation with 10 folds. Pruning is enabled. Tree size is 12
 
 #####Example 3
 ```
-python oce-shannon-v8.py yellow-small.csv -l -p
+python oce-shannon-v8.py yellow-small.csv -l -p  -z 3
 ```
-This command runs oce-shannon-v8.py  with yellow-small.csv dataset. Here we apply LOO( leave one out). Pruning is enabled 
+This command runs oce-shannon-v8.py  with yellow-small.csv dataset. Here we apply LOO( leave one out). Pruning is enabled. Tree size is 3
 
