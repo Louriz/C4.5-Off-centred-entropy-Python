@@ -1,5 +1,5 @@
 # This is a modification of the code C4.5 made by : Rayan Madden and Ally Cody.
-# The main in changes in the code are: Adding the OCE ( Off-Centred Entropy), OAE, Cross validation, LOO(Leave-One-Out),multiclass dealing and finding datatypes using dataset. The purpose of those changes is to deal with imbalance of modalities in the class. Here we have done it just for a binary class, but the code can be extended to multiple values class.
+# The main in changes in the code are: Adding the OCE ( Off-Centred Entropy), OAE,AVG, Cross validation, LOO(Leave-One-Out),multiclass dealing and finding datatypes using dataset. The purpose of those changes is to deal with imbalance of modalities in the class. Here we have done it just for a binary class, but the code can be extended to multiple values class.
 # This modification is made by:,Ali MesbahiRochd Maliki and Riahi Louriz during the internship at IMT Atlantique.
 #
 # decision-tree
